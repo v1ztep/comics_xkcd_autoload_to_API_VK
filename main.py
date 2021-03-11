@@ -32,6 +32,8 @@ def main():
     image_url = comic_details['img']
     image_name = comic_details['num']
     download_image(image_url, image_name)
+    comic_comment = comic_details['alt']
+    print(comic_comment)
 
 
 if __name__ == '__main__':
