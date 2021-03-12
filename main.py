@@ -1,7 +1,10 @@
+import json
+import os
 from pathlib import Path
 
 import requests
 import urllib3
+from dotenv import load_dotenv
 
 
 def get_response(url, params=None, headers=None):
@@ -19,22 +22,44 @@ def download_image(url, image_name, images_folder='images'):
 
 
 def main():
+    load_dotenv()
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     images_folder = 'images'
-    Path(images_folder).mkdir(parents=True, exist_ok=True)
+    vk_access_token = os.getenv('VK_ACCESS_TOKEN')
+    vk_group_id = os.getenv('VK_GROUP_ID')
 
-    comic_number = 353
-    url = f'https://xkcd.com/{comic_number}/info.0.json'
+    # Path(images_folder).mkdir(parents=True, exist_ok=True)
+    # comic_number = 353
+    # url = f'https://xkcd.com/{comic_number}/info.0.json'
+    #
+    # response = get_response(url)
+    # comic_details = response.json()
+    #
+    # image_url = comic_details['img']
+    # image_name = comic_details['num']
+    # download_image(image_url, image_name)
+    # comic_comment = comic_details['alt']
+    # print(comic_comment)
 
-    response = get_response(url)
-    comic_details = response.json()
+    actual_version_api = '5.130'
 
-    image_url = comic_details['img']
-    image_name = comic_details['num']
-    download_image(image_url, image_name)
-    comic_comment = comic_details['alt']
-    print(comic_comment)
 
+    method_name = 'photos.getWallUploadServer'
+    url = f'https://api.vk.com/method/{method_name}'
+
+    params = {
+        'access_token': vk_access_token,
+        'group_id': vk_group_id,
+        'v': actual_version_api
+    }
+
+    response = get_response(url, params=params)
+    vk_api_response = response.json()
+    print(vk_api_response)
+
+
+    with open("description.json", "w", encoding='utf8') as file:
+        json.dump(vk_api_response, file, ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
     main()
