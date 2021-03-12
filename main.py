@@ -90,7 +90,6 @@ def main():
 
     post_from_group = 1
     attachments = f'photo{photo_owner_id}_{image_id}'
-    message = None #comic_comment
 
 
     params = {
