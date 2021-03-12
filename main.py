@@ -27,6 +27,7 @@ def main():
     images_folder = 'images'
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     vk_group_id = os.getenv('VK_GROUP_ID')
+    client_id = os.getenv('CLIENT_ID')
 
     Path(images_folder).mkdir(parents=True, exist_ok=True)
 
@@ -77,13 +78,36 @@ def main():
     save_url = f'https://api.vk.com/method/{method_name}'
 
     params.update(vk_details)
-    params['caption'] = comic_comment
 
     response = requests.post(save_url, params=params)
     response.raise_for_status()
 
     vk_details = response.json()
 
+###################### Пост на стене ВК группы ###############################
+    photo_owner_id = vk_details['response'][0]['owner_id']
+    image_id = vk_details['response'][0]['id']
+
+    post_from_group = 1
+    attachments = f'photo{photo_owner_id}_{image_id}'
+    message = None #comic_comment
+
+
+    params = {
+        'access_token': vk_access_token,
+        'v': actual_version_api,
+        'owner_id': f'-{vk_group_id}',
+        'from_group': post_from_group,
+        'attachments': attachments,
+        'message': comic_comment
+    }
+
+    method_name = 'wall.post'
+    post_url = f'https://api.vk.com/method/{method_name}'
+    response = requests.post(post_url, params=params)
+    response.raise_for_status()
+
+    vk_details = response.json()
 
 
     with open("description.json", "w", encoding='utf8') as file:
