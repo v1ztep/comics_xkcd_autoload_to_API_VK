@@ -41,8 +41,9 @@ def main():
     download_image(image_url, image_name, images_folder=images_folder)
     comic_comment = comic_details['alt']
 
-    actual_version_api = '5.130'
+###################### Получение адреса на загрузку фото #####################
 
+    actual_version_api = '5.130'
 
     method_name = 'photos.getWallUploadServer'
     url = f'https://api.vk.com/method/{method_name}'
@@ -59,7 +60,7 @@ def main():
 
     upload_url = vk_details['response']['upload_url']
 
-
+###################### Загрузка на сервер ВК ################################
     image_path = Path(f'{images_folder}/{image_name}.png')
 
     with open(image_path, 'rb') as file:
@@ -69,6 +70,20 @@ def main():
         response = requests.post(upload_url, files=files)
         response.raise_for_status()
         vk_details = response.json()
+        print(vk_details)
+
+###################### Сохранение в альбом ВК ###############################
+    method_name = 'photos.saveWallPhoto'
+    save_url = f'https://api.vk.com/method/{method_name}'
+
+    params.update(vk_details)
+    params['caption'] = comic_comment
+
+    response = requests.post(save_url, params=params)
+    response.raise_for_status()
+
+    vk_details = response.json()
+
 
 
     with open("description.json", "w", encoding='utf8') as file:
