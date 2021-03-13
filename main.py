@@ -27,11 +27,13 @@ def main():
     images_folder = 'images'
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     vk_group_id = os.getenv('VK_GROUP_ID')
-    client_id = os.getenv('CLIENT_ID')
 
     Path(images_folder).mkdir(parents=True, exist_ok=True)
 
-    comic_number = 353
+    # 'https://xkcd.com/404/info.0.json' убрать 404, 1608, 1663 из выборки = мёртвые
+    # https://xkcd.com/1127/info.0.json есть варианты с большим размером large
+
+    comic_number = 2399
     url = f'https://xkcd.com/{comic_number}/info.0.json'
 
     response = get_response(url)
@@ -41,7 +43,8 @@ def main():
     image_name = comic_details['num']
     download_image(image_url, image_name, images_folder=images_folder)
     comic_comment = comic_details['alt']
-
+############################# Удалить??? #############################
+    image_link = comic_details['link']
 ###################### Получение адреса на загрузку фото #####################
 
     actual_version_api = '5.130'
@@ -83,8 +86,10 @@ def main():
     response.raise_for_status()
 
     vk_details = response.json()
+    with open("description.json", "w", encoding='utf8') as file:
+        json.dump(vk_details, file, ensure_ascii=False, indent=4)
 
-###################### Пост на стене ВК группы ###############################
+##################### Пост на стене ВК группы ###############################
     photo_owner_id = vk_details['response'][0]['owner_id']
     image_id = vk_details['response'][0]['id']
 
@@ -100,6 +105,10 @@ def main():
         'attachments': attachments,
         'message': comic_comment
     }
+    if image_link:
+        additional_materials = {'message': f'{comic_comment}\n\n{image_link}'}
+        params.update(additional_materials)
+
 
     method_name = 'wall.post'
     post_url = f'https://api.vk.com/method/{method_name}'
