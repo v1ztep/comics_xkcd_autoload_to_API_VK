@@ -56,12 +56,12 @@ def post_to_vk(vk_access_token, vk_group_id, image_name, comic_comment,
     base_api_url = 'https://api.vk.com/method/'
 
     get_upload_url = urljoin(base_api_url, 'photos.getWallUploadServer')
-    upload_params = {
+    access_params = {
         'access_token': vk_access_token,
         'group_id': vk_group_id,
         'v': actual_version_api
     }
-    upload_server_response = get_response(get_upload_url, params=upload_params)
+    upload_server_response = get_response(get_upload_url, params=access_params)
     upload_server_details = upload_server_response.json()
     upload_url = upload_server_details['response']['upload_url']
 
@@ -72,12 +72,9 @@ def post_to_vk(vk_access_token, vk_group_id, image_name, comic_comment,
         upload_response = post_response(upload_url, files=files)
         upload_details = upload_response.json()
 
-    save_params = {
-        'access_token': vk_access_token,
-        'group_id': vk_group_id,
-        'v': actual_version_api
-    }
-    save_params.update(upload_details)
+    access_params.update(upload_details)
+    save_params = access_params
+
     save_url = urljoin(base_api_url, 'photos.saveWallPhoto')
     save_response = post_response(save_url, params=save_params)
     save_details = save_response.json()
