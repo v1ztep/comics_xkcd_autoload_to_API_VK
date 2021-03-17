@@ -13,9 +13,8 @@ def get_response(url, params=None, headers=None):
     return response
 
 
-def post_response(url, params=None, headers=None, files=None):
-    response = requests.post(url, params=params, headers=headers, verify=False,
-                             files=files)
+def post_response(url, params=None, files=None):
+    response = requests.post(url, params=params, files=files, verify=False)
     response.raise_for_status()
     return response
 
@@ -40,8 +39,8 @@ def download_random_comic(image_name):
     url = f'https://xkcd.com/{comic_num}/info.0.json'
     response = get_response(url)
     comic_details = response.json()
-
     image_url = comic_details['img']
+
     download_image(image_url, image_name)
     comic_comment = comic_details['alt']
     extra_link = comic_details['link']
@@ -49,52 +48,51 @@ def download_random_comic(image_name):
     return comic_comment, extra_link
 
 
-def post_to_vk(vk_access_token, vk_group_id, image_name, comic_comment,
-               extra_link):
-    actual_version_api = '5.130'
-    post_from_group = 1
-    base_api_url = 'https://api.vk.com/method/'
-
-    get_upload_url = urljoin(base_api_url, 'photos.getWallUploadServer')
-    access_params = {
-        'access_token': vk_access_token,
-        'group_id': vk_group_id,
-        'v': actual_version_api
-    }
-    upload_server_response = get_response(get_upload_url, params=access_params)
-    upload_server_details = upload_server_response.json()
+def get_upload_url(base_api_url, access_params):
+    url = urljoin(base_api_url, 'photos.getWallUploadServer')
+    response = get_response(url, params=access_params)
+    upload_server_details = response.json()
     upload_url = upload_server_details['response']['upload_url']
+    return upload_url
 
+
+def upload_image(image_name, upload_url):
     with open(image_name, 'rb') as file:
         files = {
             'photo': file,
         }
         upload_response = post_response(upload_url, files=files)
         upload_details = upload_response.json()
+        return upload_details
 
+
+def save_image(base_api_url, access_params, upload_details):
     access_params.update(upload_details)
-    save_params = access_params
-
     save_url = urljoin(base_api_url, 'photos.saveWallPhoto')
-    save_response = post_response(save_url, params=save_params)
+    save_response = post_response(save_url, params=access_params)
     save_details = save_response.json()
+    return save_details
 
+
+def post_comic(base_api_url, access_params, save_details, comic_comment,
+               extra_link):
+    post_from_group = 1
     photo_owner_id = save_details['response'][0]['owner_id']
     image_id = save_details['response'][0]['id']
     attachments = f'photo{photo_owner_id}_{image_id}'
     post_params = {
-        'access_token': vk_access_token,
-        'v': actual_version_api,
-        'owner_id': f'-{vk_group_id}',
+        'owner_id': f'-{access_params.pop("group_id")}',
         'from_group': post_from_group,
         'attachments': attachments,
         'message': comic_comment
     }
+    post_params.update(access_params)
     if extra_link:
         extra_materials = {
             'message': f'{comic_comment}\n\n{extra_link}'
         }
         post_params.update(extra_materials)
+
     post_url = urljoin(base_api_url, 'wall.post')
     post_response(post_url, params=post_params)
 
@@ -103,14 +101,27 @@ def main():
     load_dotenv()
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
     image_name = 'xkcd.png'
+    api_version = '5.130'
     vk_access_token = os.getenv('VK_ACCESS_TOKEN')
     vk_group_id = os.getenv('VK_GROUP_ID')
+    base_api_url = 'https://api.vk.com/method/'
+    access_params = {
+        'access_token': vk_access_token,
+        'group_id': vk_group_id,
+        'v': api_version
+    }
 
-    comic_comment, extra_link = download_random_comic(image_name)
-    post_to_vk(vk_access_token, vk_group_id, image_name, comic_comment,
-               extra_link)
+    try:
+        comic_comment, extra_link = download_random_comic(image_name)
+        upload_url = get_upload_url(base_api_url, access_params)
+        upload_details = upload_image(image_name, upload_url)
+        save_details = save_image(base_api_url, access_params, upload_details)
+        post_comic(
+            base_api_url, access_params, save_details, comic_comment,
+            extra_link)
+    finally:
+        os.remove(image_name)
 
-    os.remove(image_name)
 
 if __name__ == '__main__':
     main()
