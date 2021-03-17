@@ -116,9 +116,10 @@ def main():
         upload_url = get_upload_url(base_api_url, access_params)
         upload_details = upload_image(image_name, upload_url)
         save_details = save_image(base_api_url, access_params, upload_details)
-        post_comic(
-            base_api_url, access_params, save_details, comic_comment,
-            extra_link)
+        post_comic(base_api_url, access_params, save_details, comic_comment,
+                   extra_link)
+    except requests.HTTPError as err:
+        print(f'Не удалось запостить комикс: {err}')
     finally:
         os.remove(image_name)
 
