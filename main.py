@@ -67,26 +67,27 @@ def upload_image(image_name, upload_url):
 
 
 def save_image(base_api_url, access_params, upload_details):
-    access_params.update(upload_details)
+    save_params = {**access_params, **upload_details}
     save_url = urljoin(base_api_url, 'photos.saveWallPhoto')
-    save_response = post_response(save_url, params=access_params)
+    save_response = post_response(save_url, params=save_params)
     save_details = save_response.json()
-    return save_details
-
-
-def post_comic(base_api_url, access_params, save_details, comic_comment,
-               extra_link):
-    post_from_group = 1
     photo_owner_id = save_details['response'][0]['owner_id']
     image_id = save_details['response'][0]['id']
+    return photo_owner_id, image_id
+
+
+def post_comic(base_api_url, access_params, photo_owner_id, image_id,
+               comic_comment, extra_link):
+    post_from_group = 1
+    post_access = access_params.copy()
     attachments = f'photo{photo_owner_id}_{image_id}'
     post_params = {
-        'owner_id': f'-{access_params.pop("group_id")}',
+        'owner_id': f'-{post_access.pop("group_id")}',
         'from_group': post_from_group,
         'attachments': attachments,
         'message': comic_comment
     }
-    post_params.update(access_params)
+    post_params.update(post_access)
     if extra_link:
         extra_materials = {
             'message': f'{comic_comment}\n\n{extra_link}'
@@ -115,9 +116,10 @@ def main():
         comic_comment, extra_link = download_random_comic(image_name)
         upload_url = get_upload_url(base_api_url, access_params)
         upload_details = upload_image(image_name, upload_url)
-        save_details = save_image(base_api_url, access_params, upload_details)
-        post_comic(base_api_url, access_params, save_details, comic_comment,
-                   extra_link)
+        photo_owner_id, image_id = \
+            save_image(base_api_url, access_params, upload_details)
+        post_comic(base_api_url, access_params, photo_owner_id, image_id,
+                   comic_comment, extra_link)
     except requests.HTTPError as err:
         print(f'Не удалось запостить комикс: {err}')
     finally:
