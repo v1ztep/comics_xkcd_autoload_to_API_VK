@@ -13,9 +13,19 @@ def get_response(url, params=None, headers=None):
     return response
 
 
-def post_response(url, params=None, files=None):
+def get_vk_response(url, params=None, headers=None):
+    response = requests.get(url, params=params, headers=headers, verify=False)
+    response_details = response.json()
+    if response_details.get('error'):
+        raise requests.HTTPError(response_details['error']['error_msg'])
+    return response
+
+
+def post_vk_response(url, params=None, files=None):
     response = requests.post(url, params=params, files=files, verify=False)
-    response.raise_for_status()
+    response_details = response.json()
+    if response_details.get('error'):
+        raise requests.HTTPError(response_details['error']['error_msg'])
     return response
 
 
@@ -50,7 +60,7 @@ def download_random_comic(image_name):
 
 def get_upload_url(base_api_url, access_params):
     url = urljoin(base_api_url, 'photos.getWallUploadServer')
-    response = get_response(url, params=access_params)
+    response = get_vk_response(url, params=access_params)
     upload_server_details = response.json()
     upload_url = upload_server_details['response']['upload_url']
     return upload_url
@@ -61,7 +71,7 @@ def upload_image(image_name, upload_url):
         files = {
             'photo': file,
         }
-        upload_response = post_response(upload_url, files=files)
+        upload_response = post_vk_response(upload_url, files=files)
         upload_details = upload_response.json()
         return upload_details
 
@@ -69,7 +79,7 @@ def upload_image(image_name, upload_url):
 def save_image(base_api_url, access_params, upload_details):
     save_params = {**access_params, **upload_details}
     save_url = urljoin(base_api_url, 'photos.saveWallPhoto')
-    save_response = post_response(save_url, params=save_params)
+    save_response = post_vk_response(save_url, params=save_params)
     save_details = save_response.json()
     photo_owner_id = save_details['response'][0]['owner_id']
     image_id = save_details['response'][0]['id']
@@ -95,7 +105,7 @@ def post_comic(base_api_url, access_params, photo_owner_id, image_id,
         post_params.update(extra_materials)
 
     post_url = urljoin(base_api_url, 'wall.post')
-    post_response(post_url, params=post_params)
+    post_vk_response(post_url, params=post_params)
 
 
 def main():
@@ -121,7 +131,7 @@ def main():
         post_comic(base_api_url, access_params, photo_owner_id, image_id,
                    comic_comment, extra_link)
     except requests.HTTPError as err:
-        print(f'Не удалось запостить комикс: {err}')
+        print(f'Ошибка: {err}')
     finally:
         os.remove(image_name)
 
