@@ -89,8 +89,8 @@ def save_image(base_api_url, access_params, upload_details):
 def post_comic(base_api_url, access_params, photo_owner_id, image_id,
                comic_comment, extra_link):
     post_from_group = 1
-    post_access = access_params.copy()
     attachments = f'photo{photo_owner_id}_{image_id}'
+    post_access = access_params.copy()
     post_params = {
         'owner_id': f'-{post_access.pop("group_id")}',
         'from_group': post_from_group,
